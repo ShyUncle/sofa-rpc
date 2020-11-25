@@ -18,6 +18,7 @@ package com.alipay.sofa.rpc.client;
 
 import com.alipay.sofa.rpc.common.RpcConfigs;
 import com.alipay.sofa.rpc.common.RpcOptions;
+import com.alipay.sofa.rpc.common.utils.CommonUtils;
 
 import java.io.Serializable;
 import java.util.Map;
@@ -374,7 +375,8 @@ public class ProviderInfo implements Serializable {
      */
     public ProviderStatus getStatus() {
         if (status == ProviderStatus.WARMING_UP) {
-            if (System.currentTimeMillis() > (Long) getDynamicAttr(ProviderInfoAttrs.ATTR_WARM_UP_END_TIME)) {
+            Object dynamicAttr = getDynamicAttr(ProviderInfoAttrs.ATTR_WARM_UP_END_TIME);
+            if (dynamicAttr != null && System.currentTimeMillis() > (Long) dynamicAttr) {
                 // 如果已经过了预热时间，恢复为正常
                 status = ProviderStatus.AVAILABLE;
                 setDynamicAttr(ProviderInfoAttrs.ATTR_WARM_UP_END_TIME, null);
@@ -411,7 +413,9 @@ public class ProviderInfo implements Serializable {
      */
     public ProviderInfo setStaticAttrs(Map<String, String> staticAttrs) {
         this.staticAttrs.clear();
-        this.staticAttrs.putAll(staticAttrs);
+        if (CommonUtils.isNotEmpty(staticAttrs)) {
+            this.staticAttrs.putAll(staticAttrs);
+        }
         return this;
     }
 

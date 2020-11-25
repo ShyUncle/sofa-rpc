@@ -16,6 +16,7 @@
  */
 package com.alipay.sofa.rpc.config;
 
+import com.alipay.sofa.rpc.common.MockMode;
 import com.alipay.sofa.rpc.common.RpcConstants;
 import com.alipay.sofa.rpc.common.struct.Cache;
 import com.alipay.sofa.rpc.common.utils.BeanUtils;
@@ -27,6 +28,7 @@ import com.alipay.sofa.rpc.common.utils.StringUtils;
 import com.alipay.sofa.rpc.core.exception.SofaRpcRuntimeException;
 import com.alipay.sofa.rpc.filter.Filter;
 import com.alipay.sofa.rpc.listener.ConfigListener;
+import com.alipay.sofa.rpc.log.LogCodes;
 import com.alipay.sofa.rpc.log.Logger;
 import com.alipay.sofa.rpc.log.LoggerFactory;
 
@@ -137,6 +139,7 @@ public abstract class AbstractInterfaceConfig<T, S extends AbstractInterfaceConf
 
     /**
      * 服务分组：不做为服务唯一标识的一部分
+     *
      * @deprecated 不再作为服务唯一标识，请直接使用 {@link #uniqueId} 代替
      */
     @Deprecated
@@ -177,6 +180,11 @@ public abstract class AbstractInterfaceConfig<T, S extends AbstractInterfaceConf
     protected boolean                                cache;
 
     /**
+     * mock模式
+     */
+    protected String                                 mockMode;
+
+    /**
      * 是否开启mock
      */
     protected boolean                                mock;
@@ -190,6 +198,11 @@ public abstract class AbstractInterfaceConfig<T, S extends AbstractInterfaceConf
      * 压缩算法，为空则不压缩
      */
     protected String                                 compress;
+
+    /**
+     * 虚拟 interfaceid
+     */
+    protected String                                 virtualInterfaceId;
 
     /*-------------配置项结束----------------*/
 
@@ -223,6 +236,17 @@ public abstract class AbstractInterfaceConfig<T, S extends AbstractInterfaceConf
     protected abstract String buildKey();
 
     /**
+     * Sets proxyClass
+     *
+     * @param proxyClass the proxyClass
+     * @return this config
+     */
+    public S setProxyClass(Class proxyClass) {
+        this.proxyClass = proxyClass;
+        return castThis();
+    }
+
+    /**
      * Gets application.
      *
      * @return the application
@@ -254,7 +278,12 @@ public abstract class AbstractInterfaceConfig<T, S extends AbstractInterfaceConf
      * @return the interface id
      */
     public String getInterfaceId() {
-        return interfaceId;
+
+        if (StringUtils.isNotBlank(virtualInterfaceId)) {
+            return virtualInterfaceId;
+        } else {
+            return interfaceId;
+        }
     }
 
     /**
@@ -464,7 +493,7 @@ public abstract class AbstractInterfaceConfig<T, S extends AbstractInterfaceConf
      *
      * @param group the group
      * @return the group
-     * @deprecated Use {@link #setUniqueId(String)} 
+     * @deprecated Use {@link #setUniqueId(String)}
      */
     @Deprecated
     public S setGroup(String group) {
@@ -487,7 +516,7 @@ public abstract class AbstractInterfaceConfig<T, S extends AbstractInterfaceConf
      *
      * @param version the version
      * @return the version
-     * @deprecated Use {@link #setUniqueId(String)} 
+     * @deprecated Use {@link #setUniqueId(String)}
      */
     @Deprecated
     public S setVersion(String version) {
@@ -558,17 +587,26 @@ public abstract class AbstractInterfaceConfig<T, S extends AbstractInterfaceConf
         return castThis();
     }
 
-    /**
-     * Is mock boolean.
-     *
-     * @return the boolean
-     */
+    public String getMockMode() {
+        return mockMode;
+    }
+
+    public S setMockMode(String mockMode) {
+        this.mockMode = mockMode;
+        if (StringUtils.equals(mockMode, MockMode.LOCAL) ||
+            StringUtils.equals(mockMode, MockMode.REMOTE)) {
+            this.setMock(true);
+        }
+        return castThis();
+    }
+
     public boolean isMock() {
         return mock;
     }
 
     /**
-     * Sets mock.
+     * Sets mock. do not invoke this
+     * use setMockMode
      *
      * @param mock the mock
      * @return the mock
@@ -850,8 +888,10 @@ public abstract class AbstractInterfaceConfig<T, S extends AbstractInterfaceConf
                 oldValue = BeanUtils.getProperty(this, property, propertyClazz);
             }
             return oldValue == null ? null : oldValue.toString();
+        } catch (SofaRpcRuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            throw new SofaRpcRuntimeException("Exception when query attribute, The key is " + property, e);
+            throw new SofaRpcRuntimeException(LogCodes.getLog(LogCodes.ERROR_QUERY_ATTRIBUTE, property), e);
         }
     }
 
@@ -929,9 +969,11 @@ public abstract class AbstractInterfaceConfig<T, S extends AbstractInterfaceConf
                 }
             }
             return changed;
+        } catch (SofaRpcRuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            throw new SofaRpcRuntimeException("Exception when update attribute, The key is "
-                + property + " and value is " + newValueStr, e);
+            throw new SofaRpcRuntimeException(LogCodes.getLog(LogCodes.ERROR_UPDATE_ATTRIBUTE, property, newValueStr),
+                e);
         }
     }
 
@@ -1010,5 +1052,13 @@ public abstract class AbstractInterfaceConfig<T, S extends AbstractInterfaceConf
      */
     public String getAppName() {
         return application.getAppName();
+    }
+
+    public String getVirtualInterfaceId() {
+        return virtualInterfaceId;
+    }
+
+    public void setVirtualInterfaceId(String virtualInterfaceId) {
+        this.virtualInterfaceId = virtualInterfaceId;
     }
 }

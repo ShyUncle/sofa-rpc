@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.alipay.sofa</groupId>
         <artifactId>sofa-rpc-core</artifactId>
-        <version>5.5.0</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>sofa-rpc-api</artifactId>
@@ -16,7 +16,6 @@
         <dependency>
             <groupId>com.alipay.sofa</groupId>
             <artifactId>sofa-rpc-common</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
 
         <dependency>

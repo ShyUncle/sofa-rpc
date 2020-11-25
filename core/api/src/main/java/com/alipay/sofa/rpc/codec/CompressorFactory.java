@@ -21,6 +21,7 @@ import com.alipay.sofa.rpc.ext.ExtensionClass;
 import com.alipay.sofa.rpc.ext.ExtensionLoader;
 import com.alipay.sofa.rpc.ext.ExtensionLoaderFactory;
 import com.alipay.sofa.rpc.ext.ExtensionLoaderListener;
+import com.alipay.sofa.rpc.log.LogCodes;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -49,7 +50,8 @@ public final class CompressorFactory {
     private final static ExtensionLoader<Compressor>     EXTENSION_LOADER    = buildLoader();
 
     private static ExtensionLoader<Compressor> buildLoader() {
-        return ExtensionLoaderFactory.getExtensionLoader(Compressor.class, new ExtensionLoaderListener<Compressor>() {
+        ExtensionLoader<Compressor> extensionLoader = ExtensionLoaderFactory.getExtensionLoader(Compressor.class);
+        extensionLoader.addListener(new ExtensionLoaderListener<Compressor>() {
             @Override
             public void onLoad(ExtensionClass<Compressor> extensionClass) {
                 // 除了保留 tag：Compressor外， 需要保留 code：Compressor
@@ -57,6 +59,7 @@ public final class CompressorFactory {
                 TYPE_CODE_MAP.put(extensionClass.getAlias(), extensionClass.getCode());
             }
         });
+        return extensionLoader;
     }
 
     /**
@@ -79,7 +82,7 @@ public final class CompressorFactory {
     public static Compressor getCompressor(byte code) {
         Compressor compressor = TYPE_COMPRESSOR_MAP.get(code);
         if (compressor == null) {
-            throw new SofaRpcRuntimeException("Compressor Not Found :\"" + code + "\"!");
+            throw new SofaRpcRuntimeException(LogCodes.getLog(LogCodes.ERROR_COMPRESSOR_NOT_FOUND, code));
         }
         return compressor;
     }

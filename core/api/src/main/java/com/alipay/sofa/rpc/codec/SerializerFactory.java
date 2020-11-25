@@ -22,6 +22,7 @@ import com.alipay.sofa.rpc.ext.ExtensionClass;
 import com.alipay.sofa.rpc.ext.ExtensionLoader;
 import com.alipay.sofa.rpc.ext.ExtensionLoaderFactory;
 import com.alipay.sofa.rpc.ext.ExtensionLoaderListener;
+import com.alipay.sofa.rpc.log.LogCodes;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -50,15 +51,17 @@ public final class SerializerFactory {
     private final static ExtensionLoader<Serializer>     EXTENSION_LOADER    = buildLoader();
 
     private static ExtensionLoader<Serializer> buildLoader() {
-        return ExtensionLoaderFactory.getExtensionLoader(Serializer.class,
-            new ExtensionLoaderListener<Serializer>() {
-                @Override
-                public void onLoad(ExtensionClass<Serializer> extensionClass) {
-                    // 除了保留 tag：Serializer外， 需要保留 code：Serializer
-                    TYPE_SERIALIZER_MAP.put(extensionClass.getCode(), extensionClass.getExtInstance());
-                    TYPE_CODE_MAP.put(extensionClass.getAlias(), extensionClass.getCode());
-                }
-            });
+        ExtensionLoader<Serializer> extensionLoader = ExtensionLoaderFactory.getExtensionLoader(Serializer.class);
+        extensionLoader.addListener(new ExtensionLoaderListener<Serializer>() {
+            @Override
+            public void onLoad(ExtensionClass<Serializer> extensionClass) {
+                // 除了保留 tag：Serializer外， 需要保留 code：Serializer
+                TYPE_SERIALIZER_MAP.put(extensionClass.getCode(), extensionClass.getExtInstance());
+                TYPE_CODE_MAP.put(extensionClass.getAlias(), extensionClass.getCode());
+            }
+        });
+        return extensionLoader;
+
     }
 
     /**
@@ -81,7 +84,7 @@ public final class SerializerFactory {
     public static Serializer getSerializer(byte type) {
         Serializer serializer = TYPE_SERIALIZER_MAP.get(type);
         if (serializer == null) {
-            throw new SofaRpcRuntimeException("Serializer Not Found :\"" + type + "\"!");
+            throw new SofaRpcRuntimeException(LogCodes.getLog(LogCodes.ERROR_SERIALIZER_NOT_FOUND, type));
         }
         return serializer;
     }

@@ -32,6 +32,7 @@ import com.alipay.sofa.rpc.listener.ConsumerStateListener;
 import com.alipay.sofa.rpc.listener.ProviderInfoListener;
 
 import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.util.List;
 
 import static com.alipay.sofa.rpc.common.RpcConfigs.getBooleanValue;
@@ -48,7 +49,6 @@ import static com.alipay.sofa.rpc.common.RpcOptions.CONSUMER_CONNECT_TIMEOUT;
 import static com.alipay.sofa.rpc.common.RpcOptions.CONSUMER_DISCONNECT_TIMEOUT;
 import static com.alipay.sofa.rpc.common.RpcOptions.CONSUMER_HEARTBEAT_PERIOD;
 import static com.alipay.sofa.rpc.common.RpcOptions.CONSUMER_INJVM;
-import static com.alipay.sofa.rpc.common.RpcOptions.CONSUMER_INVOKE_TIMEOUT;
 import static com.alipay.sofa.rpc.common.RpcOptions.CONSUMER_INVOKE_TYPE;
 import static com.alipay.sofa.rpc.common.RpcOptions.CONSUMER_LAZY;
 import static com.alipay.sofa.rpc.common.RpcOptions.CONSUMER_LOAD_BALANCER;
@@ -60,7 +60,7 @@ import static com.alipay.sofa.rpc.common.RpcOptions.DEFAULT_PROTOCOL;
 
 /**
  * 服务消费者配置
- * 
+ *
  * @param <T> the type parameter
  * @author <a href=mailto:zhanggeng.zg@antfin.com>GengZhang</a>
  */
@@ -209,7 +209,7 @@ public class ConsumerConfig<T> extends AbstractInterfaceConfig<T, ConsumerConfig
     /**
      * 客户端调用超时时间(毫秒)
      */
-    protected int                                   timeout            = getIntValue(CONSUMER_INVOKE_TIMEOUT);
+    protected int                                   timeout            = -1;
 
     /**
      * The Retries. 失败后重试次数
@@ -240,7 +240,7 @@ public class ConsumerConfig<T> extends AbstractInterfaceConfig<T, ConsumerConfig
      */
     @Override
     public String buildKey() {
-        return protocol + "://" + interfaceId + ":" + uniqueId;
+        return protocol + "://" + this.getInterfaceId() + ":" + uniqueId;
     }
 
     /**
@@ -259,7 +259,7 @@ public class ConsumerConfig<T> extends AbstractInterfaceConfig<T, ConsumerConfig
         try {
             if (StringUtils.isNotBlank(interfaceId)) {
                 this.proxyClass = ClassUtils.forName(interfaceId);
-                if (!proxyClass.isInterface()) {
+                if (!RpcConstants.PROTOCOL_TYPE_TRIPLE.equals(protocol) && !proxyClass.isInterface()) {
                     throw ExceptionUtils.buildRuntime("consumer.interface",
                         interfaceId, "interfaceId must set interface class, not implement class");
                 }
@@ -882,7 +882,7 @@ public class ConsumerConfig<T> extends AbstractInterfaceConfig<T, ConsumerConfig
     }
 
     /**
-     * Gets time out.
+     * Gets the timeout corresponding to the method name
      *
      * @param methodName the method name
      * @return the time out
@@ -904,10 +904,10 @@ public class ConsumerConfig<T> extends AbstractInterfaceConfig<T, ConsumerConfig
     }
 
     /**
-     * Gets time out.
+     * Gets the call type corresponding to the method name
      *
      * @param methodName the method name
-     * @return the time out
+     * @return the call type
      */
     public String getMethodInvokeType(String methodName) {
         return (String) getMethodConfigValue(methodName, RpcConstants.CONFIG_KEY_INVOKE_TYPE,
@@ -974,5 +974,23 @@ public class ConsumerConfig<T> extends AbstractInterfaceConfig<T, ConsumerConfig
     public ConsumerConfig<T> setProviderInfoListener(ProviderInfoListener providerInfoListener) {
         this.providerInfoListener = providerInfoListener;
         return this;
+    }
+
+    @Override
+    public String getInterfaceId() {
+        if (StringUtils.equals(RpcConstants.PROTOCOL_TYPE_TRIPLE, this.getProtocol())) {
+            Class enclosingClass = this.getProxyClass().getEnclosingClass();
+            Method sofaStub = null;
+            String serviceName = interfaceId;
+            try {
+                sofaStub = enclosingClass.getDeclaredMethod("getServiceName");
+                serviceName = (String) sofaStub.invoke(null);
+            } catch (Throwable e) {
+                //ignore
+            }
+            return serviceName;
+        } else {
+            return interfaceId;
+        }
     }
 }

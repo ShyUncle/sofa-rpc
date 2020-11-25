@@ -18,6 +18,7 @@ package com.alipay.sofa.rpc.client;
 
 import com.alipay.sofa.rpc.common.utils.CommonUtils;
 import com.alipay.sofa.rpc.common.utils.StringUtils;
+import com.alipay.sofa.rpc.log.LogCodes;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,7 +41,9 @@ public class ProviderHelper {
      */
     public static void compareGroup(ProviderGroup oldGroup, ProviderGroup newGroup,
                                     List<ProviderInfo> add, List<ProviderInfo> remove) {
-        compareProviders(oldGroup.getProviderInfos(), newGroup.getProviderInfos(), add, remove);
+        final List<ProviderInfo> oldProviders = oldGroup == null ? null : oldGroup.getProviderInfos();
+        final List<ProviderInfo> newProviders = newGroup == null ? null : newGroup.getProviderInfos();
+        compareProviders(oldProviders, newProviders, add, remove);
     }
 
     /**
@@ -88,8 +91,8 @@ public class ProviderHelper {
      *
      * @param oldGroups old provider group list
      * @param newGroups new provider group list
-     * @param add      provider list need add
-     * @param remove   provider list need remove
+     * @param add       provider list need add
+     * @param remove    provider list need remove
      */
     public static void compareGroups(List<ProviderGroup> oldGroups, List<ProviderGroup> newGroups,
                                      List<ProviderInfo> add,
@@ -162,7 +165,7 @@ public class ProviderHelper {
 
     /**
      * Write provider info to url string
-     * 
+     *
      * @param providerInfo Provide info
      * @return the string
      */
@@ -190,7 +193,7 @@ public class ProviderHelper {
      * Parse url string to ProviderInfo.
      *
      * @param url the url
-     * @return ProviderInfo 
+     * @return ProviderInfo
      */
     public static ProviderInfo toProviderInfo(String url) {
         ProviderInfo providerInfo = new ProviderInfo();
@@ -260,7 +263,7 @@ public class ProviderHelper {
                 providerInfo.setPath(StringUtils.EMPTY);
             }
         } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to convert url to provider, the wrong url is:" + url, e);
+            throw new IllegalArgumentException(LogCodes.getLog(LogCodes.ERROR_CONVERT_URL, url), e);
         }
         return providerInfo;
     }
